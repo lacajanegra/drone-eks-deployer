@@ -5,6 +5,8 @@ set -e
 
 echo "Initializing..."
 
+echo "Received VARS: $(printenv)"
+
 if [ -z ${PLUGIN_AWS_REGION} ]; then
     export PLUGIN_AWS_REGION="us-east-1"
 fi
