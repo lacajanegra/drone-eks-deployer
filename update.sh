@@ -11,8 +11,8 @@ fi
 export AWS_DEFAULT_REGION=${PLUGIN_AWS_REGION}
 echo "region ${AWS_DEFAULT_REGION}"
 
-echo $(aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID)
-echo $(aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY)
+echo $(aws configure set aws_access_key_id $PLUGIN_AWS_ACCESS_KEY_ID)
+echo $(aws configure set aws_secret_access_key $PLUGIN_AWS_SECRET_ACCESS_KEY)
 echo $(aws configure set region $PLUGIN_AWS_REGION)
 
 export NODE_GROUP_ARN=${PLUGIN_NODE_ROLE}
