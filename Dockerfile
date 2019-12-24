@@ -1,6 +1,8 @@
 FROM alpine:3.8
 
+
 # Install base utilities
+RUN apk add --no-cache curl ca-certificates perl
 RUN apk --no-cache add curl ca-certificates bash jq groff less python py-pip py-setuptools
 RUN pip --no-cache-dir install awscli
 

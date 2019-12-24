@@ -3,19 +3,45 @@
 # On error, exit immediately
 set -e
 
-echo "Initializing..."
+echo "Initializing pipeline..."
 
-echo "Received VARS: $(printenv)"
+
+if [ -z ${PLUGIN_MANIFEST} ]; then
+    export PLUGIN_MANIFEST=".kube.yml"
+fi
 
 if [ -z ${PLUGIN_AWS_REGION} ]; then
     export PLUGIN_AWS_REGION="us-east-1"
 fi
+
+if [ -z ${PLUGIN_AWS_ACCESS_KEY_ID} ]; then
+    echo "aws_access_key_id is missing"
+    exit 1
+fi
+
+if [ -z ${PLUGIN_AWS_SECRET_ACCESS_KEY} ]; then
+    echo "aws_secret_access_key is missing"
+    exit 1
+fi
+
+if [ -z ${PLUGIN_NODE_ROLE} ]; then
+    echo "node_role is missing"
+    exit 1
+fi
+
+if [ -z ${PLUGIN_CLUSTER} ]; then
+    echo "cluster is missing"
+    exit 1
+fi
+
 export AWS_DEFAULT_REGION=${PLUGIN_AWS_REGION}
 echo "region ${AWS_DEFAULT_REGION}"
 
-echo $(aws configure set aws_access_key_id $PLUGIN_AWS_ACCESS_KEY_ID)
-echo $(aws configure set aws_secret_access_key $PLUGIN_AWS_SECRET_ACCESS_KEY)
-echo $(aws configure set region $PLUGIN_AWS_REGION)
+echo "Applying aws configutation..."
+
+$(aws configure set aws_access_key_id $PLUGIN_AWS_ACCESS_KEY_ID)
+$(aws configure set aws_secret_access_key $PLUGIN_AWS_SECRET_ACCESS_KEY)
+$(aws configure set region $PLUGIN_AWS_REGION)
 
 export NODE_GROUP_ARN=${PLUGIN_NODE_ROLE}
 
@@ -47,13 +73,14 @@ if [ -z $EKS_URL ] || [ -z $EKS_CA ]; then
     exit 1
 fi
 
-echo "Succesfull FEKS cluster information ${EKS_URL}"
+echo "Succesfull EKS cluster information ${EKS_URL}"
 
 
 echo "Generating the k8s configuration file..."
+
 if [ -d  ~/.kube ]; 
 then 
-   echo "~/.kube exists"
+   echo "~/.kube already exists"
 else
    mkdir ~/.kube
 fi
@@ -94,11 +121,17 @@ EOF
 echo "Exporting k8s configuration path..."
 export KUBECONFIG=$KUBECONFIG:~/.kube/config
 
-
+echo "Aplying update-kubeconfig..."
 echo $(aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $CLUSTER_NAME --role-arn $NODE_GROUP_ARN)
+
+
+perl -pi -e 's{(\{\{\ \.)(\w+)(\ \}\})}{$ENV{$2} // $&}ge' $PLUGIN_MANIFEST
+
+echo "Manifest file with env vars succefully replaced..."
+cat $PLUGIN_MANIFEST
 
 echo "Applying the manifest..."
 echo ""
-cat ".kube.yml" | sed 's@__TAG__@'"$DRONE_TAG"'@g' | kubectl apply -f -
+cat $PLUGIN_MANIFEST | sed 's@__TAG__@'"$DRONE_TAG"'@g' | kubectl apply -f -
 echo ""
 echo "Flow has ended."
