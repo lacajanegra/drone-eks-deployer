@@ -35,9 +35,10 @@ if [ -z ${PLUGIN_CLUSTER} ]; then
 fi
 
 export AWS_DEFAULT_REGION=${PLUGIN_AWS_REGION}
-echo "region ${AWS_DEFAULT_REGION}"
 
+echo ""
 echo "Applying aws configutation..."
+echo ""
 
 $(aws configure set aws_access_key_id $PLUGIN_AWS_ACCESS_KEY_ID)
 $(aws configure set aws_secret_access_key $PLUGIN_AWS_SECRET_ACCESS_KEY)
@@ -51,8 +52,10 @@ echo ""
 echo "Trying to deploy against '$CLUSTER_NAME' ($AWS_DEFAULT_REGION) $NODE_GROUP_ARN."
 echo ""
 
-
+echo ""
 echo "Fetching the authentication token..."
+echo ""
+
 KUBERNETES_TOKEN=$(aws-iam-authenticator token -i $CLUSTER_NAME -r $NODE_GROUP_ARN | jq -r .status.token)
 
 if [ -z $KUBERNETES_TOKEN ]; then
@@ -62,8 +65,10 @@ if [ -z $KUBERNETES_TOKEN ]; then
     exit 1
 fi
 
-
+echo ""
 echo "Fetching the EKS cluster information..."
+echo ""
+
 EKS_URL=$(aws eks describe-cluster --name $CLUSTER_NAME | jq -r .cluster.endpoint)
 EKS_CA=$(aws eks describe-cluster --name $CLUSTER_NAME | jq -r .cluster.certificateAuthority.data)
 
@@ -73,13 +78,17 @@ if [ -z $EKS_URL ] || [ -z $EKS_CA ]; then
     exit 1
 fi
 
+echo ""
 echo "Succesfull EKS cluster information ${EKS_URL}"
+echo ""
 
-
+echo ""
 echo "Generating the k8s configuration file..."
+echo ""
 
 if [ -d  ~/.kube ]; 
 then 
+   echo ""
    echo "~/.kube already exists"
 else
    mkdir ~/.kube
@@ -118,20 +127,37 @@ users:
       - $CLUSTER_NAME
 EOF
 
+echo ""
 echo "Exporting k8s configuration path..."
+echo ""
+
 export KUBECONFIG=$KUBECONFIG:~/.kube/config
 
+echo ""
 echo "Aplying update-kubeconfig..."
+echo ""
+
 echo $(aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $CLUSTER_NAME --role-arn $NODE_GROUP_ARN)
 
 
 perl -pi -e 's{(\{\{\ \.)(\w+)(\ \}\})}{$ENV{$2} // $&}ge' $PLUGIN_MANIFEST
 
-echo "Manifest file with env vars succefully replaced..."
-cat $PLUGIN_MANIFEST
-
-echo "Applying the manifest..."
 echo ""
+echo "Manifest file with env vars successfully replaced..."
+cat $PLUGIN_MANIFEST
+echo ""
+
+echo ""
+echo "Validating Kubernetes manifests with a dry-run..."
+echo ""
+
+cat $PLUGIN_MANIFEST | sed 's@__TAG__@'"$DRONE_TAG"'@g' | kubectl apply --dry-run -f -
+echo ""
+
+echo ""
+echo "Applying Kubernetes manifests to the cluster..."
+echo ""
+
 cat $PLUGIN_MANIFEST | sed 's@__TAG__@'"$DRONE_TAG"'@g' | kubectl apply -f -
 echo ""
 echo "Flow has ended."
