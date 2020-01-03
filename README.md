@@ -6,12 +6,11 @@ manifests to [EKS][eks] clusters.
 [drone]: https://drone.io
 [eks]: https://aws.amazon.com/eks
 
-
 ## Usage
 
 ### Statement for deploy step
 
-Example of step on ```.drone.yml``` file for using this plugin:
+Example of step on `.drone.yml` file for using this plugin:
 
 ```yaml
 kind: pipeline
@@ -19,7 +18,7 @@ name: default
 
 steps:
   - name: deploy-to-eks
-    image: cajanegra/drone-eks-deployer:1.1.6
+    image: cajanegra/drone-eks-deployer
     settings:
       node_role: arn:aws:iam::123456789:role/eks-node-role # Required
       cluster: arn:aws:eks:us-east-1:123456789:cluster/EKS-cluster-name # Required
@@ -33,15 +32,14 @@ steps:
 
 ### Example of manifest
 
-This is manifest file ```.kube.yml``` could be used with the previous example
+This is manifest file `.kube.yml` could be used with the previous example
 
 ```yaml
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: '{{ .namespace }}' # This parameter would be replaced by "example-namespace" 
+  name: '{{ .namespace }}' # This parameter would be replaced by "example-namespace"
                            # before being applied on the eks cluster
-  
+
   ...
 ```
-
